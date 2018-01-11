@@ -58,9 +58,9 @@ public class SessionConfiguration {
 
     public static void saveSessionConfiguration(SessionConfiguration sessionConfiguration, String fileName) throws SessionConfigurationException {
 
-    	String albertogay = fileName;
+    	String alberto = fileName;
     	SessionConfiguration s = sessionConfiguration;
-    	File file = new File(albertogay);
+    	File file = new File(alberto);
         try {
             JAXBContext jaxbContext = JAXBContext.newInstance(SessionConfiguration.class);
 
