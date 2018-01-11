@@ -22,6 +22,7 @@ public class SessionConfiguration {
 
     @XmlElement(name = "database-file-name")
     private String databaseFileName;
+    private final static String exception = "Exception";
 
     public String getDatabaseFileName() {
         return databaseFileName;
@@ -46,7 +47,7 @@ public class SessionConfiguration {
 
             return sessionConfiguration;
         } catch (JAXBException e) {
-            throw new SessionConfigurationException(e);
+            throw new SessionConfigurationException(exception);
         }
 
     }
@@ -67,7 +68,7 @@ public class SessionConfiguration {
 
             marshaller.marshal(s, file);
         } catch (JAXBException e) {
-            throw new SessionConfigurationException(e);
+            throw new SessionConfigurationException(exception);
         }
 
     }
