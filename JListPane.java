@@ -50,6 +50,10 @@ public class JListPane extends JList {
         addMouseListener(mouseListener);
     }
 
+    /**
+     * 
+     * @param actionListener
+     */
     public void addActionListener(ActionListener actionListener) {
     	synchronized (this){
     	actionListeners.add(actionListener);
@@ -187,7 +191,7 @@ public class JListPane extends JList {
 
         @Override     
        /**
-        * 
+        * @inheritDoc
         * @param e
         */
         public void mouseClicked(MouseEvent e) {
