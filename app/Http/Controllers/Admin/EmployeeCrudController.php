@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Requests\EmployeeRequest as StoreRequest;
+use App\Http\Requests\EmployeeRequest as UpdateRequest;
+use App\Mail\AddNewCompanyManager;
+use App\Models\Enterprise;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
+use Illuminate\Support\Facades\Mail;
 
-// VALIDATION: change the requests to match your own file names if you need form validation
-use App\Http\Requests\SiteTypeRequest as StoreRequest;
-use App\Http\Requests\SiteTypeRequest as UpdateRequest;
-
-class SiteTypeCrudController extends CrudController
+class EmployeeCrudController extends CrudController
 {
     public function setup()
     {
@@ -18,9 +19,9 @@ class SiteTypeCrudController extends CrudController
         | BASIC CRUD INFORMATION
         |--------------------------------------------------------------------------
         */
-        $this->crud->setModel('App\Models\SiteType');
-        $this->crud->setRoute('/companyManager/sitetype');
-        $this->crud->setEntityNameStrings('Tipo di sito', 'Tipi di siti');
+        $this->crud->setModel('App\Models\Employee');
+        $this->crud->setRoute('/companyManager/employee');
+        $this->crud->setEntityNameStrings('employee', 'employees');
 
         /*
         |--------------------------------------------------------------------------
@@ -28,14 +29,14 @@ class SiteTypeCrudController extends CrudController
         |--------------------------------------------------------------------------
         */
 
-        $this->crud->setFromDb();
+        // $this->crud->setFromDb();
 
         // ------ CRUD FIELDS
         $this->crud->addField([
-            'name' => 'name',
-            'label' => 'Nome',
-            'type' => 'text',
-        ], 'update/create/both');
+            'name' => 'email',
+            'label' => 'Email Impiegato',
+            'type' => 'email'
+        ], 'create');
         // $this->crud->addField($options, 'update/create/both');
         // $this->crud->addFields($array_of_arrays, 'update/create/both');
         // $this->crud->removeField('name', 'update/create/both');
@@ -46,10 +47,15 @@ class SiteTypeCrudController extends CrudController
            'name' => 'name',
            'label' => "Nome"
         ]);
+
+        $this->crud->addColumn([
+           'name' => 'email',
+           'label' => "Email"
+        ]);
         // $this->crud->addColumn(); // add a single column, at the end of the stack
         // $this->crud->addColumns(); // add multiple columns, at the end of the stack
         // $this->crud->removeColumn('column_name'); // remove a column from the stack
-        // $this->crud->removeColumns(['column_name_1', 'column_name_2']); // remove an array of columns from the stack
+        $this->crud->removeColumns(['password', 'remember_token','enterprise_id']); // remove an array of columns from the stack
         // $this->crud->setColumnDetails('column_name', ['attribute' => 'value']); // adjusts the properties of the passed in column (by name)
         // $this->crud->setColumnsDetails(['column_1', 'column_2'], ['attribute' => 'value']);
 
@@ -58,7 +64,7 @@ class SiteTypeCrudController extends CrudController
         // $this->crud->addButton($stack, $name, $type, $content, $position); // add a button; possible types are: view, model_function
         // $this->crud->addButtonFromModelFunction($stack, $name, $model_function_name, $position); // add a button whose HTML is returned by a method in the CRUD model
         // $this->crud->addButtonFromView($stack, $name, $view, $position); // add a button whose HTML is in a view placed at resources\views\vendor\backpack\crud\buttons
-        // $this->crud->removeButton($name);
+        $this->crud->removeButton('update');
         // $this->crud->removeButtonFromStack($name, $stack);
         // $this->crud->removeAllButtons();
         // $this->crud->removeAllButtonsFromStack('line');
@@ -108,13 +114,30 @@ class SiteTypeCrudController extends CrudController
         // $this->crud->limit();
     }
 
+    /**
+     * Display all rows in the database for this entity.
+     *
+     * @return Response
+     */
+    public function index()
+    {
+        $this->crud->hasAccessOrFail('list');
+        $this->crud->addClause('where','enterprise_id',auth()->user()->enterprise_id);
+        $this->data['crud'] = $this->crud;
+        $this->data['title'] = ucfirst($this->crud->entity_name_plural);
+        // load the view from /resources/views/vendor/backpack/crud/ if it exists, otherwise load the one in the package
+        return view($this->crud->getListView(), $this->data);
+    }
+
     public function store(StoreRequest $request)
     {
         // your additional operations before save here
-        $redirect_location = parent::storeCrud($request);
+        $enterprise = Enterprise::find(auth()->user()->enterprise_id)->first();
+        Mail::to($request->email)->send(new AddNewCompanyManager($enterprise,'Employee'));
         // your additional operations after save here
         // use $this->data['entry'] or $this->crud->entry
-        return $redirect_location;
+        \Alert::success(trans('backpack::crud.insert_success'))->flash();
+        return $this->getRedirectRoute($enterprise);
     }
 
     public function update(UpdateRequest $request)
@@ -124,5 +147,23 @@ class SiteTypeCrudController extends CrudController
         // your additional operations after save here
         // use $this->data['entry'] or $this->crud->entry
         return $redirect_location;
+    }
+
+    private function getRedirectRoute($itemId = null)
+    {
+        $saveAction = \Request::input('save_action', config('backpack.crud.default_save_action', 'save_and_back'));
+        $itemId = $itemId ? $itemId : \Request::input('id');
+
+        switch ($saveAction) {
+            case 'save_and_new':
+                $redirectUrl = url('/companyManager/employee/create');
+                break;
+            case 'save_and_edit':
+            case 'save_and_back':
+            default:
+                $redirectUrl = $this->crud->route;
+                break;
+        }
+        return \Redirect::to($redirectUrl);
     }
 }

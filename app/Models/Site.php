@@ -38,6 +38,18 @@ class Site extends Model
     {
         return $this->siteType->name;
     }
+
+    public function getImage()
+    {
+        if($this->map)
+            return '<img src="'.$this->map.'" alt="Red dot" height="50">';
+        return '-';
+    }
+
+    public function getAddNewSensor()
+    {
+        return '<a href="'.url('companyManager/sensor/create').'" class="btn btn-xs btn-default"><i aria-hidden="true" class="fa fa-assistive-listening-systems"></i> + Sensore</a>';
+    }
     /*
     |--------------------------------------------------------------------------
     | RELATIONS

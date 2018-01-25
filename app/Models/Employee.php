@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-use Backpack\CRUD\CrudTrait;
 use Illuminate\Database\Eloquent\Model;
+use Backpack\CRUD\CrudTrait;
 
-class SensorCatalog extends Model
+class Employee extends Model
 {
     use CrudTrait;
 
@@ -15,11 +15,11 @@ class SensorCatalog extends Model
     |--------------------------------------------------------------------------
     */
 
-    //protected $table = 'sensor_catalogs';
+    protected $table = 'users';
     //protected $primaryKey = 'id';
     // public $timestamps = false;
     // protected $guarded = ['id'];
-    protected $fillable = ["name","description","min_detectable","max_detectable","sensor_type_id","brand_id"];
+    // protected $fillable = [];
     // protected $hidden = [];
     // protected $dates = [];
 
@@ -29,37 +29,12 @@ class SensorCatalog extends Model
     |--------------------------------------------------------------------------
     */
 
-    public function getBrandName()
-    {
-        return $this->brand->name;
-    }
-    
-    public function getSensorTypeName()
-    {
-        return $this->sensorType->name;
-    }
     /*
     |--------------------------------------------------------------------------
     | RELATIONS
     |--------------------------------------------------------------------------
     */
 
-    public function sensorType()
-    {
-        return $this->belongsTo(SensorType::class);
-    }
-    public function brand()
-    {
-        return $this->belongsTo(Brand::class);
-    }
-    public function sensors()
-    {
-        return $this->hasMany(Sensor::class);
-    }
-    public function messages()
-    {
-        return $this->hasMany(Message::class);
-    }
     /*
     |--------------------------------------------------------------------------
     | SCOPES
@@ -77,6 +52,4 @@ class SensorCatalog extends Model
     | MUTATORS
     |--------------------------------------------------------------------------
     */
-
-
 }
