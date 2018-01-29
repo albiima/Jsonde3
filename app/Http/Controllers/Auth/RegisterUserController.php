@@ -57,15 +57,24 @@ class RegisterUserController extends BackpackRegisterController
         if(array_key_exists('cryptedData',$data)){
             $now = Carbon::now('Europe/Rome');
             $data['expired'] = $data['expiring_date']->lte($now);
-            
-            return Validator::make($data, [
-                'name'     => 'required|max:255',
-                'email'    => 'required|email|max:255|unique:'.$users_table,
-                'password' => 'required|min:6|confirmed',
-                'expiring_date' => 'required|after_or_equal:'.$now->format('Y-m-d H:i:s'),
-                'enterprise_id' => 'required|numeric',
-                'role' => 'required|string'
-            ]);
+            if(isset($data['site_id']))
+                return Validator::make($data, [
+                    'name'     => 'required|max:255',
+                    'email'    => 'required|email|max:255|unique:'.$users_table,
+                    'password' => 'required|min:6|confirmed',
+                    'expiring_date' => 'required|after_or_equal:'.$now->format('Y-m-d H:i:s'),
+                    'site_id' => 'required|numeric',
+                    'role' => 'required|string'
+                ]);
+            else
+                return Validator::make($data, [
+                    'name'     => 'required|max:255',
+                    'email'    => 'required|email|max:255|unique:'.$users_table,
+                    'password' => 'required|min:6|confirmed',
+                    'expiring_date' => 'required|after_or_equal:'.$now->format('Y-m-d H:i:s'),
+                    'enterprise_id' => 'required|numeric',
+                    'role' => 'required|string'
+                ]);
 
         }else {
             return Validator::make($data, [
@@ -93,13 +102,20 @@ class RegisterUserController extends BackpackRegisterController
         
         if(array_key_exists('role',$data)){
             
-
-            return $user->create([
-                'name'     => $data['name'],
-                'email'    => $data['email'],
-                'password' => bcrypt($data['password']),
-                'enterprise_id' => $data['enterprise_id'],
-            ])->assignRole($data['role']);
+            if(isset($data['site_id']))
+                return $user->create([
+                    'name'     => $data['name'],
+                    'email'    => $data['email'],
+                    'password' => bcrypt($data['password']),
+                    'site_id' => $data['site_id'],
+                ])->assignRole($data['role']);
+            else
+                return $user->create([
+                    'name'     => $data['name'],
+                    'email'    => $data['email'],
+                    'password' => bcrypt($data['password']),
+                    'enterprise_id' => $data['enterprise_id'],
+                ])->assignRole($data['role']);
         }
 
         return $user->create([
@@ -117,13 +133,24 @@ class RegisterUserController extends BackpackRegisterController
     public function showRegistrationForm($cryptedData = null)
     {
         // if registration is closed, deny access
-        if (!config('backpack.base.registration_open')) {
+        if (!config('backpack.base.registration_open') || is_null($cryptedData)) {
             abort(403, trans('backpack::base.registration_closed'));
         }
 
         $this->data['title'] = trans('backpack::base.register'); // set the page title
 
         $this->data['cryptedData'] = $cryptedData;
+        $data['email'] = null;
+        try {
+            $decrypted = Crypt::decryptString($cryptedData);
+            $decrypted = json_decode($decrypted,true);
+            $this->data['email'] = $decrypted['email'];
+
+        } catch (DecryptException $e) {
+            abort(403, trans('backpack::base.registration_closed'));
+        }
+        
+        
         return view('backpack::auth.register', $this->data);
     }
 
@@ -146,7 +173,10 @@ class RegisterUserController extends BackpackRegisterController
                 $decrypted = Crypt::decryptString($requestData['cryptedData']);
                 $decrypted = json_decode($decrypted,true);
                 unset($requestData->cryptedData);
-                $requestData['enterprise_id'] = $decrypted['enterprise_id'];
+                if(isset($decrypted['site_id']))
+                    $requestData['site_id'] = $decrypted['site_id'];
+                else
+                    $requestData['enterprise_id'] = $decrypted['enterprise_id'];
                 $requestData['role'] = $decrypted['role'];
                 $requestData['expiring_date'] = Carbon::createFromFormat('Y-m-d H:i:s',$decrypted['expiring_date']);
 

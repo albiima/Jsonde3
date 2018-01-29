@@ -4,8 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Requests\EmployeeRequest as StoreRequest;
 use App\Http\Requests\EmployeeRequest as UpdateRequest;
-use App\Mail\AddNewCompanyManager;
+use App\Mail\AddNewUser;
 use App\Models\Enterprise;
+use App\User;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Illuminate\Support\Facades\Mail;
 
@@ -21,7 +22,7 @@ class EmployeeCrudController extends CrudController
         */
         $this->crud->setModel('App\Models\Employee');
         $this->crud->setRoute('/companyManager/employee');
-        $this->crud->setEntityNameStrings('employee', 'employees');
+        $this->crud->setEntityNameStrings('impiegato', 'impiegati');
 
         /*
         |--------------------------------------------------------------------------
@@ -112,28 +113,20 @@ class EmployeeCrudController extends CrudController
         // $this->crud->orderBy();
         // $this->crud->groupBy();
         // $this->crud->limit();
-    }
-
-    /**
-     * Display all rows in the database for this entity.
-     *
-     * @return Response
-     */
-    public function index()
-    {
-        $this->crud->hasAccessOrFail('list');
-        $this->crud->addClause('where','enterprise_id',auth()->user()->enterprise_id);
-        $this->data['crud'] = $this->crud;
-        $this->data['title'] = ucfirst($this->crud->entity_name_plural);
-        // load the view from /resources/views/vendor/backpack/crud/ if it exists, otherwise load the one in the package
-        return view($this->crud->getListView(), $this->data);
+        $employeeIds = [];
+        $users = User::where('enterprise_id',auth()->user()->enterprise_id)->get();
+        foreach ($users as $u) {
+            if($u->hasRole('Employee'))
+                $employeeIds[]=$u->id;
+        }
+        $this->crud->addClause('whereIn','id',$employeeIds);
     }
 
     public function store(StoreRequest $request)
     {
         // your additional operations before save here
         $enterprise = Enterprise::find(auth()->user()->enterprise_id)->first();
-        Mail::to($request->email)->send(new AddNewCompanyManager($enterprise,'Employee'));
+        Mail::to($request->email)->send(new AddNewUser($enterprise,'Employee',$request->email));
         // your additional operations after save here
         // use $this->data['entry'] or $this->crud->entry
         \Alert::success(trans('backpack::crud.insert_success'))->flash();
